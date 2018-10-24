@@ -1,0 +1,6 @@
+{
+	"eximpr.min.js": [
+		"public/js/eximpr.js",
+		"public/js/project_template_task_depends_on.js"
+	]
+}
