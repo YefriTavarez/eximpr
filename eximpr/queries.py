@@ -1,35 +1,25 @@
 import frappe
 
-def project_manager_query(doctype, txt, searchfield, start, page_len, filters):
-	txt = "%".join(txt.split())
+def user_by_role_query(doctype, txt, searchfield, start, page_len, filters):
+	_txt = "%{text}%".format(txt=txt) \
+		if txt else "%"
 
-	result = frappe.db.sql("""SELECT DISTINCT
-			parent
+	role = ""
+	if filters.get("role"):
+		role = filters.get("role")
+
+	return frappe.db.sql("""SELECT DISTINCT
+			`tabUser`.name,
+			`tabUser`.full_name
 		FROM
-			`tabHas Role` 
+			`tabHas Role`
+		INNER JOIN
+			`tabUser`
+			ON `tabHas Role`.parent = `tabUser`.name
 		WHERE
-			parenttype = "User" 
-			AND role = "Project Manager" 
-			AND parent != "Administrator"
-			AND parent LIKE %s 
-		""", "%{}%".format(txt) if txt else "%", 
-	as_dict=True)
-
-	return [frappe.get_value("User", user.parent, ["name", "full_name"]) for user in result]
-
-def project_user_query(doctype, txt, searchfield, start, page_len, filters):
-	txt = "%".join(txt.split())
-
-	result = frappe.db.sql("""SELECT DISTINCT
-			parent
-		FROM
-			`tabHas Role` 
-		WHERE
-			parenttype = "User" 
-			AND role = "Project User" 
-			AND parent != "Administrator"
-			AND parent LIKE %s 
-		""", "%{}%".format(txt) if txt else "%", 
-	as_dict=True)
-
-	return [frappe.get_value("User", user.parent, ["name", "full_name"]) for user in result]
+			`tabHas Role`.parenttype = "User" 
+			AND `tabHas Role`.role = %s 
+			AND `tabHas Role`.parent != "Administrator"
+			AND `tabHas Role`.parent LIKE %s 
+		""", (role, _txt), 
+	debug=False)

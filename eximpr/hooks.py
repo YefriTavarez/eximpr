@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018, Yefri Tavarez and contributors
+# For license information, please see license.txt
+
 from __future__ import unicode_literals
 from . import __version__ as app_version
 
@@ -29,7 +32,15 @@ app_include_js = [
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Project" : [
+		"public/js/doctype/project.js",
+		"public/js/project_template_prompt.js",
+	],
+	"Task" : [
+		"public/js/doctype/task.js",
+	],
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -82,13 +93,21 @@ home_page = "login"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-#	}
-# }
+doc_events = {
+	"Project": {
+		"autoname": "eximpr.handlers.project.autoname",
+		"after_insert": "eximpr.handlers.project.after_insert",
+		"validate": "eximpr.handlers.project.validate",
+		"on_trash": "eximpr.handlers.project.on_trash",
+	},
+	"Task": {
+		"validate": "eximpr.handlers.task.validate",
+		"before_save": "eximpr.handlers.task.before_save",
+	},
+	"Project Type": {
+		"after_rename": "eximpr.handlers.project_type.after_rename",
+	}
+}
 
 # Scheduled Tasks
 # ---------------

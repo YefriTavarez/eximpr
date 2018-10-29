@@ -8,7 +8,6 @@ class TaskMultiSelect {
 
 	init(opts) {
 		$.each(opts, this.set.bind(this));
-		this.make_control();
 	}
 
 	set(key, value) {
@@ -18,9 +17,9 @@ class TaskMultiSelect {
 	get_docfield() {
 		return {
 			label: __("Depends On"),
-			fieldname: "depends_on",
+			fieldname: "depends_on_tasks",
 			fieldtype: "MultiSelect",
-		}
+		};
 	}
 
 	make_control() {
@@ -42,7 +41,7 @@ class TaskMultiSelect {
 	}
 
 	get_data() {
-		const value = this.get_value() || '',
+		const value = this.get_value(),
 			values = value.split(',')
 				.filter(d => d.trim()),
 			data = this.tasks.map(d => d.title);
@@ -57,7 +56,8 @@ class TaskMultiSelect {
 	}
 
 	get_value() {
-		return this.doc.depends_on;
+		return this.doc
+			.depends_on_tasks || '';
 	}
 
 	sanitize(value) {
@@ -71,7 +71,7 @@ class TaskMultiSelect {
 
 	set_value() {
 		const sanitized = this
-			.sanitize(this.doc.depends_on);
+			.sanitize(this.doc.depends_on_tasks);
 
 		this.control
 			.set_value(sanitized);
@@ -86,7 +86,7 @@ class TaskMultiSelect {
 			.set_value(
 				this.doc.doctype, 
 				this.doc.name,
-				"depends_on",
+				"depends_on_tasks",
 				sanitized
 			);
 	}

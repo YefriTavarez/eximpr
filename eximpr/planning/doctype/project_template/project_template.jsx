@@ -3,7 +3,6 @@
 
 frappe.ui.form.on("Project Template", {
 	refresh: frm => {
-		if (frm.is_new()) { return ; }
 		$.map([
 			"show_menu", 
 			"add_custom_buttons", 
@@ -16,10 +15,11 @@ frappe.ui.form.on("Project Template", {
 	},
 	validate: frm => {
 		$.map([
-			"validate_dependant_tasks", 
+			"validate_dependent_tasks", 
 		], frm.trigger.bind(frm));
 	},
 	add_custom_buttons: frm => {
+		if (frm.is_new()) { return ; }
 		$.map([
 			"add_create_project_button", 
 		], frm.trigger.bind(frm));
@@ -30,7 +30,9 @@ frappe.ui.form.on("Project Template", {
 		});
 	},
 	show_menu: frm => {
-		frm.page.show_menu();
+		if (!frm.is_new()) {
+			frm.page.show_menu();
+		}
 	},
 	create_project: frm => {
 		if (frm.is_new()) { return ; }
@@ -45,8 +47,9 @@ frappe.ui.form.on("Project Template", {
 					() => frappe.view_doc(message),
 				]);
 			} else {
-				frappe.msgprint(__("Project couldn\'t be\
-					created!"));
+				frappe.msgprint(
+					__("Project couldn\'t be created!")
+				);
 			}
 		};
 
@@ -60,41 +63,54 @@ frappe.ui.form.on("Project Template", {
 		], frm.trigger.bind(frm));
 	},
 	set_proyect_manager_query: frm => {
-		frm.set_query("project_manager", {
-			query: "eximpr.queries.project_manager_query"
+		frm.set_query("project_manager", function() {
+			return {
+				query: "eximpr.queries.user_by_role_query",
+				filters: {
+					role: "Projects Manager",
+				}
+			};
 		});
 	},
 	set_proyect_user_query: frm => {
-		frm.set_query("user", "tasks", {
-			query: "eximpr.queries.project_user_query"
+		frm.set_query("user", "tasks", function() {
+			return {
+				query: "eximpr.queries.user_by_role_query",
+				filters: {
+					role: "Projects User",
+				}
+			};
 		});
 	},
-	validate_dependant_tasks: frm => {
+	validate_dependent_tasks: frm => {
 		if (
 			frm.doc["tasks"] &&
 			frm.doc["tasks"][0] &&
-			frm.doc["tasks"][0]["dependant"]
+			frm.doc["tasks"][0]["dependent"]
 		) {
 			frappe.validated = false;
 
 			frappe.msgprint({
 				indicator: "red",
 				title: "Dependency Error",
-				message: __(`Task #1 cannot depend on\
-					any other task!`),
+				message: __(
+					"Task #1 cannot depend on any other!"
+				),
 			});
 		}
 
 		$.map(frm.doc.tasks, row => {
-			if (row.dependant && !row.depends_on) {
+			if (row.dependent && !row.depends_on_tasks) {
 				frappe.validated = false;
 
 				frappe.msgprint({
 					indicator: "red",
 					title: "Dependency Error",
-					message: __(`Task No. {0} marked as
-						dependant, but not dependency was
-						specified!`, [row.idx]),
+					message: __(
+						"Task No. {0} marked as dependent, but"
+							+ " not dependency was specified!",
+						[row.idx]
+					),
 				});
 			}
 		});
@@ -112,25 +128,28 @@ frappe.ui.form.on("Project Template Task", {
 			tablefield = fields_dict.tasks,
 			grid = tablefield.grid,
 			row = grid.grid_rows_by_docname[docname],
-			field = row.get_field("depends_on"),
+			field = row.get_field("depends_on_tasks"),
 			wrapper = field.$wrapper,
 			doc = frappe.get_doc(doctype, docname);
 
 		wrapper.empty();
 
-		if (!cint(doc.dependant)) { return ; }
+		if (!cint(doc.dependent)) { return ; }
 
-		new TaskMultiSelect({
-			tasks,
-			fields_dict,
-			grid,
-			row,
-			field,
-			wrapper,
-			doc,
-		});
+		const control = 
+			new TaskMultiSelect({
+				tasks,
+				fields_dict,
+				grid,
+				row,
+				field,
+				wrapper,
+				doc,
+			});
+
+		control.make_control();
 	},
-	dependant: (frm, doctype, docname) => {
+	dependent: (frm, doctype, docname) => {
 		frm.script_manager
 			.trigger("form_render", doctype, docname);
 	},
