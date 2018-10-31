@@ -1,27 +1,28 @@
-// Copyright (c) 2018, Yefri Tavarez and contributors
-// For license information, please see license.txt
+/*Copyright (c) 2018, Yefri Tavarez and contributors*/
+/*For license information, please see license.txt*/
 
 frappe.ui.form.on("Project Template", {
 	refresh: frm => {
 		$.map([
-			"show_menu", 
-			"add_custom_buttons", 
+			"show_menu",
+			"add_custom_buttons",
 		], frm.trigger.bind(frm));
 	},
 	onload_post_render: frm => {
 		$.map([
-			"set_queries", 
+			"set_queries",
 		], frm.trigger.bind(frm));
 	},
 	validate: frm => {
 		$.map([
-			"validate_dependent_tasks", 
+			"set_missing_project_status",
+			"validate_dependent_tasks",
 		], frm.trigger.bind(frm));
 	},
 	add_custom_buttons: frm => {
 		if (frm.is_new()) { return ; }
 		$.map([
-			"add_create_project_button", 
+			"add_create_project_button",
 		], frm.trigger.bind(frm));
 	},
 	add_create_project_button: frm => {
@@ -58,7 +59,7 @@ frappe.ui.form.on("Project Template", {
 	},
 	set_queries: frm => {
 		$.map([
-			"set_proyect_manager_query", 
+			"set_proyect_manager_query",
 			"set_proyect_user_query",
 		], frm.trigger.bind(frm));
 	},
@@ -79,6 +80,37 @@ frappe.ui.form.on("Project Template", {
 				filters: {
 					role: "Projects User",
 				}
+			};
+		});
+	},
+	set_missing_project_status: frm => {
+		const { boot } = frappe,
+			{ sysdefaults } = boot;
+
+		let { tasks } = frm.doc,
+			{ def_project_status } = sysdefaults;
+
+		tasks.map(task => {
+			const {
+				status_changer,
+				project_status,
+				indicator,
+			} = task;
+
+			if (
+				!project_status
+					&& !status_changer
+			) {
+				$.extend(task,
+					def_project_status);
+
+				return /* empty */;
+			}
+
+			// use the last one
+			def_project_status = {
+				indicator,
+				project_status,
 			};
 		});
 	},
@@ -116,7 +148,7 @@ frappe.ui.form.on("Project Template", {
 		});
 	},
 	tasks_on_form_rendered: frm => {
-		// empty
+		/*empty*/
 	},
 });
 
@@ -136,7 +168,7 @@ frappe.ui.form.on("Project Template Task", {
 
 		if (!cint(doc.dependent)) { return ; }
 
-		const control = 
+		const control =
 			new TaskMultiSelect({
 				tasks,
 				fields_dict,
@@ -150,7 +182,33 @@ frappe.ui.form.on("Project Template Task", {
 		control.make_control();
 	},
 	dependent: (frm, doctype, docname) => {
+		const doc = frappe.get_doc(doctype, docname);
+
+		if (doc.idx === 1) {
+			const message = __(
+				"Task in row #1 cannot depend on any other task!"
+			);
+
+			if (doc.dependent) {
+				frappe.msgprint(message);
+				frappe.model
+					.set_value(doctype, docname, "dependent", false);
+			}
+
+			return /* empty */;
+		}
+
 		frm.script_manager
 			.trigger("form_render", doctype, docname);
+	},
+	status_changer: (frm, doctype, docname) => {
+		/*const doc = frappe.get_doc(doctype, docname);*/
+		$.map([
+			"indicator",
+			"project_status",
+		], fieldname => {
+			frappe.model
+				.set_value(doctype, docname, fieldname, undefined);
+		});
 	},
 });

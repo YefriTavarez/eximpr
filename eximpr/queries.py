@@ -1,7 +1,7 @@
 import frappe
 
 def user_by_role_query(doctype, txt, searchfield, start, page_len, filters):
-	_txt = "%{text}%".format(txt=txt) \
+	_txt = "%{txt}%".format(txt=txt) \
 		if txt else "%"
 
 	role = ""
@@ -17,9 +17,9 @@ def user_by_role_query(doctype, txt, searchfield, start, page_len, filters):
 			`tabUser`
 			ON `tabHas Role`.parent = `tabUser`.name
 		WHERE
-			`tabHas Role`.parenttype = "User" 
-			AND `tabHas Role`.role = %s 
+			`tabHas Role`.parenttype = "User"
+			AND `tabHas Role`.role = %s
 			AND `tabHas Role`.parent != "Administrator"
-			AND `tabHas Role`.parent LIKE %s 
-		""", (role, _txt), 
+			AND `tabHas Role`.parent LIKE %s
+		""", (role, _txt),
 	debug=False)

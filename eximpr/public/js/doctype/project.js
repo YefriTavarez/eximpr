@@ -8,6 +8,11 @@ frappe.ui.form.on("Project", {
 			"add_custom_buttons",
 		], frm.trigger.bind(frm));
 	},
+	onload: frm => {
+		$.map([
+			"set_defaults",
+		], frm.trigger.bind(frm));
+	},
 	onload_post_render: frm => {
 		$.map([
 			"set_queries",
@@ -17,39 +22,46 @@ frappe.ui.form.on("Project", {
 		const { doc } = frm;
 
 		if (
-			frm.flags 
+			frm.flags
 				&& frm.flags.from_refresh
-		) { 
+		) {
 			frm.flags = {};
-			return ; 
+			return ;
 		}
 
 		if (!doc.project_type) { return ; }
-		
+
 		$.map([
 			"customer",
 			"sales_order",
 		], fieldname => {
-			frm.toggle_reqd(fieldname, 
+			frm.toggle_reqd(fieldname,
 				cint(doc.sales_order_reqd));
 		});
 
 		if (!frm.flags) {
 			frm.flags = {};
 		}
-		
+
 		frm.flags.from_refresh = true;
 		frm.refresh();
 	},
 	set_queries: frm => {
 		$.map([
 			"set_sales_order_query",
-		], frm.trigger.bind(frm));	
+		], frm.trigger.bind(frm));
+	},
+	set_defaults: frm => {
+		let { doc } = frm;
+
+		if (!doc.status) {
+			doc.status = "Open";
+		}
 	},
 	add_custom_buttons: frm => {
 		$.map([
 			"add_load_from_template_btn",
-		], frm.trigger.bind(frm));	
+		], frm.trigger.bind(frm));
 	},
 	set_sales_order_query: frm => {
 		frm.set_query("sales_order", event => {
@@ -74,7 +86,7 @@ frappe.ui.form.on("Project", {
 			.set_inner_btn_group_as_primary(label);
 	},
 	load_from_template: frm => {
-		const dialog = 
+		const dialog =
 			new ProjectTemplatePrompt({	frm });
 
 		dialog.start();
@@ -102,8 +114,8 @@ frappe.ui.form.on("Project", {
 });
 
 frappe.ui.form.on("Project Task", {
-	start_date: (frm, cdt, cdn) => {
-		const doc = frappe.get_doc(cdt, cdn),
+	start_date: (frm, doctype, docname) => {
+		const doc = frappe.get_doc(doctype, docname),
 			{ add_days } = frappe.datetime;
 
 		let { tasks } = frm.doc,
@@ -111,7 +123,6 @@ frappe.ui.form.on("Project Task", {
 
 		$.grep(tasks, task => task.idx >= doc.idx)
 			.map(task => {
-				console.log({ task });
 				task.start_date = _start_date;
 				_start_date = add_days(_start_date,
 					cint(task.lead_time));
@@ -121,11 +132,11 @@ frappe.ui.form.on("Project Task", {
 			});
 
 		frm.refresh_fields();
-		frm.set_value("expected_end_date", 
+		frm.set_value("expected_end_date",
 			_start_date);
 	},
-	end_date: (frm, cdt, cdn) => {
-		const doc = frappe.get_doc(cdt, cdn),
+	end_date: (frm, doctype, docname) => {
+		const doc = frappe.get_doc(doctype, docname),
 			{ add_days } = frappe.datetime;
 
 		let { tasks } = frm.doc,
@@ -142,7 +153,44 @@ frappe.ui.form.on("Project Task", {
 			});
 
 		frm.refresh_fields();
-		frm.set_value("expected_end_date", 
+		frm.set_value("expected_end_date",
 			_start_date);
+	},
+	status: (frm, doctype, docname) => {
+		const { set_value } = frappe.model,
+			row = frappe.get_doc(doctype, docname);
+
+		if (row.status === "Closed") {
+			// update the child
+			set_value(doctype, docname,
+				"prev_project_status", frm.doc.status);
+
+			set_value(doctype, docname,
+				"prev_indicator", frm.doc.indicator);
+
+			// update the parent
+
+			$.each({
+				"status": "project_status",
+				"indicator": "indicator",
+			}, (fieldname, value) => {
+				frm.set_value(fieldname, row[value]);
+			});
+		} else if (row.status === "Open") {
+			// update the parent
+			$.each({
+				"status": "prev_project_status",
+				"indicator": "prev_indicator",
+			}, (fieldname, value) => {
+				frm.set_value(fieldname, row[value]);
+			});
+
+			// update the child
+			set_value(doctype, docname,
+				"prev_project_status", undefined);
+
+			set_value(doctype, docname,
+				"prev_indicator", undefined);
+		}
 	},
 });

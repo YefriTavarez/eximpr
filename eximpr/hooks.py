@@ -14,6 +14,8 @@ app_color = "#346"
 app_email = "yefritavarez@gmail.com"
 app_license = "General Public License, V3"
 
+fixtures = ["Custom Field", "Property Setter"]
+
 # Includes in <head>
 # ------------------
 
@@ -41,7 +43,11 @@ doctype_js = {
 		"public/js/doctype/task.js",
 	],
 }
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+
+doctype_list_js = {
+	"Project" : "public/js/doctype/project_list.js",
+}
+
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -142,3 +148,4 @@ doc_events = {
 # 	"frappe.desk.doctype.event.event.get_events": "eximpr.event.get_events"
 # }
 
+boot_session = "eximpr.boot.add_info"

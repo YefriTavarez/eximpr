@@ -13,7 +13,7 @@ def create_project_from_template(template_name, project=None):
 	"""Create a new project or update an existing one from
 	a project template.
 	:param template_name: Template to be used for the creation
-	:param project: (Optional) The project that is being 
+	:param project: (Optional) The project that is being
 	updated. If not project is passed then it will return
 	a new project created by `frappe.new_doc`
 	"""
@@ -21,12 +21,16 @@ def create_project_from_template(template_name, project=None):
 	if not project:
 		project = frappe.new_doc("Project")
 
-	# clear tables so that new tasks and users 
+	# clear tables so that new tasks and users
 	# are not appended, but overriden instead
 	for tablename in ("tasks", "users"):
 		project.set(tablename, list())
 
 	def post_process(source, target):
+		if not target.get("status"):
+			target.status = "Open"
+			target.indicator = "red"
+
 		for task in source.tasks:
 			users_added = [d.user for d in target.users]
 
@@ -67,7 +71,7 @@ def update_dates_for_project(doc, start_date=None):
 
 	_start_date = doc.expected_start_date
 
-	for task in doc.tasks:
+	for task in doc.get("tasks"):
 		task.start_date = _start_date
 
 		# now let's add the lead time in days

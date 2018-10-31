@@ -12,7 +12,28 @@ def validate(doc, event):
 	"""Add the dependent task list to the table"""
 	if not doc.is_new():
 		return
-	
+
+	doctype = frappe.meta.get_field("project").options
+	if doc.status != doc.get_db_value("status") \
+		and doc.status == "Closed":
+
+		for key, value in (
+			("status", "project_status"),
+			("indicator", "indicator")
+		):
+			# doc[value] = frappe.get_value(doctype, doc.project, key)
+			frappe.set_value(doctype, doc.project, key, doc[value])
+
+	elif doc.status != doc.get_db_value("status") \
+		and doc.status == "Open":
+
+		for key, value in (
+			("status", "prev_project_status"),
+			("indicator", "prev_indicator")
+		):
+			frappe.set_value(doctype, doc.project, key, doc[value])
+			# doc[value] = None
+
 	if not doc.depends_on_tasks:
 		return
 
