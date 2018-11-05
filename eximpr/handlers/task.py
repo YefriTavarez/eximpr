@@ -7,32 +7,50 @@ import frappe
 
 from frappe.core.doctype.role import role
 from frappe import _
+from frappe import set_value, get_value
 
 def validate(doc, event):
 	"""Add the dependent task list to the table"""
-	if not doc.is_new():
-		return
 
-	doctype = frappe.meta.get_field("project").options
+	doctype = doc.meta.get_field("project") \
+		.options
+
 	if doc.status != doc.get_db_value("status") \
 		and doc.status == "Closed":
 
-		for key, value in (
-			("status", "project_status"),
-			("indicator", "indicator")
+		for key, value, prev in (
+			("status", "project_status", "prev_project_status"),
+			("indicator", "indicator", "prev_indicator"),
 		):
-			# doc[value] = frappe.get_value(doctype, doc.project, key)
-			frappe.set_value(doctype, doc.project, key, doc[value])
+			value_in_project = get_value(doctype,
+				doc.project, key)
+
+			doc.set(prev, value_in_project)
+			doc.db_update()
+
+			if doc.get(value):
+				set_value(doctype, doc.project,
+					key, doc.get(value))
+
+			# inform next users
+			send_email_notification(doc)
 
 	elif doc.status != doc.get_db_value("status") \
-		and doc.status == "Open":
+		and not doc.status == "Closed":
 
 		for key, value in (
 			("status", "prev_project_status"),
 			("indicator", "prev_indicator")
 		):
-			frappe.set_value(doctype, doc.project, key, doc[value])
-			# doc[value] = None
+			if doc.get(value):
+				set_value(doctype, doc.project,
+					key, doc.get(value))
+
+			doc.set(value, None)
+			doc.db_update()
+
+	if not doc.is_new():
+		return
 
 	if not doc.depends_on_tasks:
 		return
@@ -70,3 +88,33 @@ def before_save(doc, event):
 		"Only user {1} can close it.")
 
 	frappe.throw(msg.format(doc.subject, doc.user))
+
+def send_email_notification(doc):
+	from frappe.utils import get_url_to_form
+
+	content = """
+	<p>{0}.</p>
+	<p><a href="{1}">{2}</a></p>
+	<p><a href="{3}">{4}</a></p>
+	"""
+
+	users = frappe.db.sql("""Select
+		`tabTask`.user,
+		`tabTask`.name
+		From `tabTask`
+		Inner Join `tabTask Depends On`
+		On `tabTask Depends On`.parent = `tabTask`.name
+		Where `tabTask Depends On`.task = %s""", doc.name)
+	for user, task in users:
+		messages = (
+			_("The task: {0} that you depended on has been closed" \
+				.format(doc.get("subject") or doc.get("title"))),
+			get_url_to_form(doc.doctype, doc.name),
+			doc.name,
+			get_url_to_form(doc.doctype, task),
+			_("View your Task")
+		)
+
+		frappe.sendmail(user,
+			subject=_("Dependent Project Task has been closed"),
+			content=content.format(*messages))
