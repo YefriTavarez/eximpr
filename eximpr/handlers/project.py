@@ -14,18 +14,26 @@ from frappe.utils import cint
 from eximpr.handlers.task import before_save as before_save_task
 
 def autoname(doc, event):
-	title = doc.customer or doc.project_type
-	doc.title = "{title}: {project_name}".format(title=title,
-		project_name=doc.project_name)
+	title = doc.sales_order \
+		or doc.customer \
+		or doc.project_type
+
+	if doc.project_name \
+		.startswith(doc.sales_order):
+		doc.title = doc.project_name
+	else:
+		doc.title = "{title}: {project_name}".format(title=title,
+			project_name=doc.project_name)
 
 	# finally let's set the name ID
-	doc.name = make_autoname("PROJ-.#####", 
+	doc.name = make_autoname("PROJ-.#####",
 		doc.doctype, doc.name)
 
 def validate(doc, event):
 	found_list = []
 	for task in doc.tasks:
-		before_save_task(task, event)
+		_task = frappe.get_doc("Task", task.task_id)
+		before_save_task(_task, event)
 
 		if not task.title in found_list:
 			found_list.append(task.title)
@@ -45,19 +53,19 @@ def after_insert(doc, event):
 		frappe.db.sql("""UPDATE
 				`tabProject` project
 			INNER JOIN
-				`tabTask` task 
-				ON project.name = task.project 
+				`tabTask` task
+				ON project.name = task.project
 			INNER JOIN
-				`tabTask Depends On` depends_on 
-				ON task.name = depends_on.parent 
+				`tabTask Depends On` depends_on
+				ON task.name = depends_on.parent
 			INNER JOIN
-				`tabTask` dependent 
-				ON dependent.subject = depends_on.subject 
-				AND dependent.project = project.name 
+				`tabTask` dependent
+				ON dependent.subject = depends_on.subject
+				AND dependent.project = project.name
 			SET
-				depends_on.task = dependent.name 
+				depends_on.task = dependent.name
 			WHERE
-				project.name = %s""", 
+				project.name = %s""",
 		project)
 
 	sync_dependent_tasks_ids(doc.name)
@@ -66,8 +74,8 @@ def on_trash(doc, event):
 	def delete_linked_tasks():
 		for taskname, in frappe.get_all("Task", {
 			"project": doc.name,
-		}, as_list=True): 
-			frappe.delete_doc("Task", 
+		}, as_list=True):
+			frappe.delete_doc("Task",
 				taskname, force=True)
 
 	if doc.sales_order:

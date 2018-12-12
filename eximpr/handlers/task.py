@@ -8,8 +8,20 @@ import frappe
 from frappe.core.doctype.role import role
 from frappe import _
 from frappe import set_value, get_value
+from frappe.utils import date_diff, nowdate, add_days
+from frappe.utils import cint
 
 def validate(doc, event):
+	# fecth the value from the database
+	doc.db_status = doc.get_db_value("status")
+
+	doc.expected_time_in_days = date_diff(doc.exp_end_date,
+		doc.exp_start_date)
+
+	add_dependent_tasks_to_table(doc, event)
+	track_times(doc, event)
+
+def add_dependent_tasks_to_table(doc, event):
 	"""Add the dependent task list to the table"""
 
 	doctype = doc.meta.get_field("project") \
@@ -47,7 +59,9 @@ def validate(doc, event):
 					key, doc.get(value))
 
 			doc.set(value, None)
-			doc.db_update()
+
+			if not doc.is_new():
+				doc.db_update()
 
 	if not doc.is_new():
 		return
@@ -64,15 +78,79 @@ def validate(doc, event):
 			"subject": depend.strip(),
 		})
 
+def track_times(doc, event):
+
+	if doc.is_new():
+		return
+
+	# let's compare the two values
+	if doc.status != doc.db_status \
+		and doc.db_status == "Open":
+
+		doc.act_start_date = nowdate()
+
+	if doc.status != doc.db_status \
+		and doc.status == "Closed":
+
+		doc.act_end_date = nowdate()
+
+	if doc.status == "Closed":
+		doc.actual_time_in_days = date_diff(doc.act_end_date,
+			doc.act_start_date)
+
+	# closing_date
+	# review_date
+	# act_start_date
+	# act_end_date
+	update_dependent_start_dates(doc)
+
+def update_dependent_start_dates(doc):
+	from frappe.utils import cstr
+
+	if cstr(doc.exp_end_date) > nowdate():
+		return
+
+	_start_date = doc.act_end_date
+
+	for taskname, in frappe.db.sql("""
+		Select
+			name
+		From
+			tabTask
+		Where
+			project = %s
+		""", doc.project):
+
+		task = frappe.get_doc("Task", taskname)
+		if task.status == "Closed":
+			continue
+
+		task.exp_start_date = _start_date
+
+		# now let's add the lead time in days
+		_start_date = add_days(_start_date,
+			cint(task.lead_time))
+
+		# it should be the expected end date
+		task.exp_end_date = _start_date
+
+		task.db_update()
+
+	frappe.db.set_value("Project", doc.project,
+		"actual_end_date", _start_date)
+
 def before_save(doc, event):
 	"""Validate ownership of the task while updating"""
+
+	if not doc.get("db_status"):
+		doc.db_status = doc.get_db_value("status")
 
 	current_user = frappe.session.user
 
 	if not doc.get("subject"):
 		doc.subject = doc.get("title")
 
-	if doc.status == doc.get_db_value("status") \
+	if doc.status == doc.db_status \
 		or doc.status != "Closed": return
 
 	if current_user == doc.user:
@@ -98,13 +176,19 @@ def send_email_notification(doc):
 	<p><a href="{3}">{4}</a></p>
 	"""
 
-	users = frappe.db.sql("""Select
-		`tabTask`.user,
-		`tabTask`.name
-		From `tabTask`
-		Inner Join `tabTask Depends On`
-		On `tabTask Depends On`.parent = `tabTask`.name
-		Where `tabTask Depends On`.task = %s""", doc.name)
+	users = frappe.db.sql("""
+		Select
+			`tabTask`.user,
+			`tabTask`.name
+		From
+			`tabTask`
+		Inner Join
+			`tabTask Depends On`
+			On `tabTask Depends On`.parent = `tabTask`.name
+		Where
+			`tabTask Depends On`.task = %s""",
+	doc.name)
+
 	for user, task in users:
 		messages = (
 			_("The task: {0} that you depended on has been closed" \

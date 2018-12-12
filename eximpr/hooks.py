@@ -20,7 +20,7 @@ fixtures = ["Custom Field", "Property Setter"]
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/eximpr/css/eximpr.css"
+app_include_css = "/assets/eximpr/css/eximpr.css"
 app_include_js = [
 	"/assets/eximpr/js/eximpr.js",
 	"/assets/eximpr/js/task_multiselect.js",
@@ -42,10 +42,14 @@ doctype_js = {
 	"Task" : [
 		"public/js/doctype/task.js",
 	],
+	"Purchase Order" : [
+		"public/js/doctype/purchase_order.js",
+	],
 }
 
 doctype_list_js = {
 	"Project" : "public/js/doctype/project_list.js",
+	"Task" : "public/js/doctype/task_list.js",
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -112,29 +116,20 @@ doc_events = {
 	},
 	"Project Type": {
 		"after_rename": "eximpr.handlers.project_type.after_rename",
+	},
+	"Purchase Order": {
+		"on_submit": "eximpr.handlers.purchase_order.on_submit",
 	}
 }
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"eximpr.tasks.all"
-# 	],
-# 	"daily": [
-# 		"eximpr.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"eximpr.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"eximpr.tasks.weekly"
-# 	]
-# 	"monthly": [
-# 		"eximpr.tasks.monthly"
-# 	]
-# }
+scheduler_events = {
+	"daily": [
+		"eximpr.scheduler.daily"
+	],
+}
 
 # Testing
 # -------

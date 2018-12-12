@@ -10,6 +10,7 @@ frappe.ui.form.on("Project", {
 	},
 	onload: frm => {
 		$.map([
+			"add_fetches",
 			"set_defaults",
 		], frm.trigger.bind(frm));
 	},
@@ -58,10 +59,27 @@ frappe.ui.form.on("Project", {
 			doc.status = "Open";
 		}
 	},
+	add_fetches: frm => {
+		$.map([
+			"add_sales_order_fetch",
+		], frm.trigger.bind(frm));
+	},
 	add_custom_buttons: frm => {
 		$.map([
 			"add_load_from_template_btn",
 		], frm.trigger.bind(frm));
+	},
+	add_sales_order_fetch: frm => {
+		$.each({
+			loading_port: "loading_port",
+			destination_port: "destination_port",
+			total_net_weight: "total_net_weight",
+			customer: "customer",
+			base_rounded_total: "estimated_costing",
+		}, (source_field, target_field) => {
+			frm.add_fetch("sales_order",
+				source_field, target_field);
+		});
 	},
 	set_sales_order_query: frm => {
 		frm.set_query("sales_order", event => {
@@ -107,6 +125,21 @@ frappe.ui.form.on("Project", {
 				]);
 			};
 		frappe.call({ method, args, callback });
+	},
+	sales_order: frm => {
+		const {
+			doc,
+		} = frm, {
+			project_name,
+			customer,
+			project_type,
+			sales_order,
+		} = doc;
+
+		if (sales_order && !project_name) {
+			frm.set_value("project_name",
+				`${sales_order}: ${customer}`);
+		}
 	},
 	expected_start_date: frm => {
 		frm.trigger("update_dates");

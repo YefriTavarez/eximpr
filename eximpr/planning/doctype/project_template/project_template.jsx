@@ -17,6 +17,7 @@ frappe.ui.form.on("Project Template", {
 		$.map([
 			"set_missing_project_status",
 			"validate_dependent_tasks",
+			"validate_reqd_fields",
 		], frm.trigger.bind(frm));
 	},
 	add_custom_buttons: frm => {
@@ -141,6 +142,32 @@ frappe.ui.form.on("Project Template", {
 					message: __(
 						"Task No. {0} marked as dependent, but"
 							+ " not dependency was specified!",
+						[row.idx]
+					),
+				});
+			}
+		});
+	},
+	validate_dependent_tasks: frm => {
+		$.map(frm.doc.tasks, row => {
+			if (
+				!cint(row.is_payment_trigger)
+			) {
+				row.payment_type = undefined;
+				return /* empty */;
+			}
+
+			if (
+				!row.payment_type
+			) {
+				frappe.validated = false;
+
+				frappe.msgprint({
+					indicator: "red",
+					title: "Validation Error",
+					message: __(
+						"Task No. {0} marked as a Payment Trigger, but"
+							+ " not Payment Type was specified!",
 						[row.idx]
 					),
 				});

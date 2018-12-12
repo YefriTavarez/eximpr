@@ -3,10 +3,10 @@
 
 $.extend(frappe, {
 	view_doc: function(opts) {
-		const { 
-			doctype, 
-			docname, 
-			name 
+		const {
+			doctype,
+			docname,
+			name
 		} = opts,
 		view_type = "Form";
 

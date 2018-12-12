@@ -29,7 +29,8 @@ def create_project_from_template(template_name, project=None):
 	def post_process(source, target):
 		if not target.get("status"):
 			target.status = "Open"
-			target.indicator = "red"
+
+		target.indicator = "red"
 
 		for task in source.tasks:
 			users_added = [d.user for d in target.users]
