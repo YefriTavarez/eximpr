@@ -25,9 +25,18 @@ def autoname(doc, event):
 		doc.title = "{title}: {project_name}".format(title=title,
 			project_name=doc.project_name)
 
+	naming_series = doc.get("naming_series") \
+		or "PROJ-.#####"
+
+	name = doc.get("sales_order")
+
+	if not doc.get("name_by_sales_order") \
+		or not name:
+		name = make_autoname(naming_series,
+			doc.doctype, doc.name)
+
 	# finally let's set the name ID
-	doc.name = make_autoname("PROJ-.#####",
-		doc.doctype, doc.name)
+	doc.name = name
 
 def validate(doc, event):
 	found_list = []

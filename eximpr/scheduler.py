@@ -28,7 +28,7 @@ def daily():
 		frappe.db.set(doc_task,
 			"status","Overdue")
 
-		if not (project_map and project_map[task.project]):
+		if not (project_map and task.project in project_map):
 			project_map[task.project] = []
 
 		project_map[task.project] += [task.subject]

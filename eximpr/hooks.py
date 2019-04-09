@@ -45,6 +45,9 @@ doctype_js = {
 	"Purchase Order" : [
 		"public/js/doctype/purchase_order.js",
 	],
+	"Sales Order" : [
+		"public/js/doctype/sales_order.js",
+	],
 }
 
 doctype_list_js = {
@@ -119,6 +122,9 @@ doc_events = {
 	},
 	"Purchase Order": {
 		"on_submit": "eximpr.handlers.purchase_order.on_submit",
+	},
+	"Contact": {
+		"on_trash": "eximpr.handlers.contact.on_trash",
 	}
 }
 

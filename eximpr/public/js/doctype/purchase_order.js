@@ -30,4 +30,15 @@ frappe.ui.form.on("Purchase Order", {
 			};
 		})
 	},
+	project: frm => {
+		let { doc } = frm;
+
+		$.map(doc.items, childdoc => {
+			const { doctype, name } = childdoc,
+				{ model } = frappe;
+
+			model.set_value(doctype, name,
+				"project", doc.project);
+		});
+	},
 });

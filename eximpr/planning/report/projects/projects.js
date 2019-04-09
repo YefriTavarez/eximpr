@@ -3,7 +3,12 @@
 
 (function() {
 
-	const { get_default } = frappe.defaults;
+	const { get_default } = frappe.defaults,
+	msg = __("Please defined the default company in Global Defaults");
+
+	if (!get_default("company")) {
+		frappe.msgprint(msg);
+	}
 
 	frappe.query_reports["Projects"] = {
 		"filters": [
